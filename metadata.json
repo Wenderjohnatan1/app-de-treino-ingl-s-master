@@ -1,0 +1,8 @@
+{
+  "name": "Inglês Master App",
+  "description": "Aplicativo para treinar inglês com fala, escuta e escrita, baseado nas 500 frases mais usadas no dia a dia com estatísticas detalhadas e controle de erros.",
+  "requestFramePermissions": [
+    "microphone"
+  ],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
