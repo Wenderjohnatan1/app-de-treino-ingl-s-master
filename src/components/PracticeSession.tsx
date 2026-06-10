@@ -293,8 +293,9 @@ export default function PracticeSession({ progress, initialInstantPhrase, onSess
 
       rec.onresult = (e: any) => {
         const transcript = e.results[0][0].transcript || '';
+        setUserInput(transcript);
         setSpokenInput(transcript);
-        setSpeechFeedback(`Transcrito: "${transcript}"`);
+        setSpeechFeedback(`Transcrito com sucesso: "${transcript}" (Você pode editar, ouvir no alto-falante ou enviar!)`);
       };
 
       recognitionRef.current = rec;
