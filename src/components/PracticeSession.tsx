@@ -15,7 +15,8 @@ import {
   HelpCircle,
   Sparkles,
   Info,
-  Eye
+  Eye,
+  Sliders
 } from 'lucide-react';
 
 function getLevenshteinDistance(a: string, b: string): number {
@@ -66,6 +67,7 @@ interface ChatMessage {
 export default function PracticeSession({ progress, initialInstantPhrase, onSessionComplete, onGoBack }: PracticeSessionProps) {
   // Config & Session State
   const [selectedCategory, setSelectedCategory] = useState<string>('Todos');
+  const [questionCount, setQuestionCount] = useState<number>(8);
   const [sessionPhrases, setSessionPhrases] = useState<Phrase[]>([]);
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   const [sessionActive, setSessionActive] = useState<boolean>(false);
@@ -205,9 +207,9 @@ export default function PracticeSession({ progress, initialInstantPhrase, onSess
       filtered = PHRASES.filter(p => p.category === selectedCategory);
     }
 
-    // Pick random 8 phrases
+    // Pick random phrases based on chosen question count
     const shuffled = [...filtered].sort(() => 0.5 - Math.random());
-    const subset = shuffled.slice(0, 8);
+    const subset = shuffled.slice(0, questionCount);
 
     if (subset.length === 0) {
       alert('Categoria vazia correspondente!');
@@ -295,7 +297,7 @@ export default function PracticeSession({ progress, initialInstantPhrase, onSess
         const transcript = e.results[0][0].transcript || '';
         setUserInput(transcript);
         setSpokenInput(transcript);
-        setSpeechFeedback(`Transcrito com sucesso: "${transcript}" (Você pode editar, ouvir no alto-falante ou enviar!)`);
+        setSpeechFeedback(`Transcrito com sucesso: "${transcript}" (Você pode editar ou enviar!)`);
       };
 
       recognitionRef.current = rec;
@@ -445,7 +447,7 @@ export default function PracticeSession({ progress, initialInstantPhrase, onSess
 
         <div className="space-y-4">
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-501 flex items-center gap-1.5">
+            <label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
               <Layers className="w-3.5 h-3.5 text-blue-500" />
               Selecione o Fluxo de Exercícios:
             </label>
@@ -454,10 +456,27 @@ export default function PracticeSession({ progress, initialInstantPhrase, onSess
               onChange={(e) => setSelectedCategory(e.target.value)}
               className="w-full py-2.5 px-3 bg-slate-50 border border-slate-200 focus:border-blue-500 focus:bg-white rounded-xl text-xs sm:text-sm focus:outline-none text-slate-700 font-medium cursor-pointer"
             >
-              <option value="Todos">Intercâmbio Misto (8 Desafios Aleatórios)</option>
+              <option value="Todos">Intercâmbio Misto (Desafios Aleatórios)</option>
               {categories.map(cat => (
                 <option key={cat} value={cat}>{cat}</option>
               ))}
+            </select>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+              <Sliders className="w-3.5 h-3.5 text-blue-500" />
+              Quantidade de Desafios (Dificuldade):
+            </label>
+            <select
+              value={questionCount}
+              onChange={(e) => setQuestionCount(Number(e.target.value))}
+              className="w-full py-2.5 px-3 bg-slate-50 border border-slate-200 focus:border-blue-500 focus:bg-white rounded-xl text-xs sm:text-sm focus:outline-none text-slate-700 font-medium cursor-pointer"
+            >
+              <option value={8}>8 Perguntas (Fácil)</option>
+              <option value={20}>20 Perguntas (Intermediário)</option>
+              <option value={30}>30 Perguntas (Difícil)</option>
+              <option value={50}>50 Perguntas (Muito Difícil)</option>
             </select>
           </div>
 
