@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Phrase, UserProgressData } from '../types';
 import { PHRASES } from '../data/phrases';
+import { getPronunciationGuide, parsePhonetic } from '../utils/pronunciation';
 import { 
   Volume2, 
   Mic, 
@@ -46,6 +47,7 @@ interface PracticeSessionProps {
   initialInstantPhrase: Phrase | null;
   onSessionComplete: (correctIds: number[], incorrectIds: number[]) => void;
   onGoBack: () => void;
+  onAutoAddToSrs?: (phraseId: number) => void;
 }
 
 interface ChatMessage {
@@ -64,7 +66,7 @@ interface ChatMessage {
   spokenSimilarity?: number;
 }
 
-export default function PracticeSession({ progress, initialInstantPhrase, onSessionComplete, onGoBack }: PracticeSessionProps) {
+export default function PracticeSession({ progress, initialInstantPhrase, onSessionComplete, onGoBack, onAutoAddToSrs }: PracticeSessionProps) {
   // Config & Session State
   const [selectedCategory, setSelectedCategory] = useState<string>('Todos');
   const [questionCount, setQuestionCount] = useState<number>(8);
@@ -113,6 +115,13 @@ export default function PracticeSession({ progress, initialInstantPhrase, onSess
       initializeChatSession([initialInstantPhrase]);
     }
   }, [initialInstantPhrase]);
+
+  // Automatically add active phrase to Spaced Repetition (SRS) once practiced/shown
+  useEffect(() => {
+    if (sessionActive && currentPhrase && onAutoAddToSrs) {
+      onAutoAddToSrs(currentPhrase.id);
+    }
+  }, [sessionActive, currentPhrase, onAutoAddToSrs]);
 
   // Clear peek on transitions/unmount
   useEffect(() => {
@@ -724,6 +733,27 @@ export default function PracticeSession({ progress, initialInstantPhrase, onSess
                           </button>
                         </div>
                         <p className="font-extrabold text-slate-900 font-mono">"{msg.phraseChallenge.english}"</p>
+                        {/* Beautiful dynamic pronunciation guide inside tutor correction */}
+                        <div className="mt-1 pb-1 flex flex-wrap items-center gap-1 font-sans">
+                          <span className="text-[9px] text-slate-400 font-bold uppercase font-mono leading-none">Sons aproximados:</span>
+                          <div className="inline-flex items-center gap-0.5 bg-amber-50/50 border border-amber-200/40 rounded px-1.5 py-0.5 text-[10px] leading-none">
+                            {parsePhonetic(getPronunciationGuide(msg.phraseChallenge.english).phoneticSpelling).map((part, pIdx) => {
+                              if (part.isSpace) return <span key={pIdx}> </span>;
+                              if (part.isHyphen) return <span key={pIdx} className="text-amber-400/80 font-bold px-0.5">-</span>;
+                              return (
+                                <span 
+                                  key={pIdx} 
+                                  className={part.isStressed 
+                                    ? "text-pink-600 font-black bg-pink-100/80 px-0.5 rounded border border-pink-200/40" 
+                                    : "text-slate-700 font-medium"
+                                  }
+                                >
+                                  {part.text}
+                                </span>
+                              );
+                            })}
+                          </div>
+                        </div>
                       </div>
                       <div>
                         <span className="text-[9px] font-bold text-slate-400 uppercase block tracking-wider">Significado Prático</span>
@@ -803,13 +833,33 @@ export default function PracticeSession({ progress, initialInstantPhrase, onSess
       {/* Peek Reminder Toast Banner */}
       {isPeeking && currentPhrase && (
         <div className="bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white px-4 py-2.5 text-xs font-bold shrink-0 flex items-center justify-between shadow-md border-b border-orange-600 z-10 animate-fade-in">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap min-w-0">
             <Sparkles className="w-4 h-4 text-amber-200 animate-pulse shrink-0" />
-            <span className="leading-tight">
-              Coloque na sua mente! A resposta é: <strong className="bg-white/20 px-2 py-0.5 rounded font-mono text-xs sm:text-sm tracking-wide ml-1 border border-white/30 select-all font-black text-white">"{currentPhrase.english}"</strong>
-            </span>
+            <div className="leading-tight text-left min-w-0">
+              <span>A resposta é: <strong className="bg-white/20 px-2 py-0.5 rounded font-mono text-xs sm:text-sm tracking-wide border border-white/30 select-all font-black text-white font-semibold">"{currentPhrase.english}"</strong></span>
+              <div className="mt-1 flex flex-wrap items-center gap-1">
+                <span className="text-[10px] text-amber-100 font-bold uppercase font-sans">Sons aproximados:</span>
+                <div className="inline-flex items-center gap-0.5 bg-black/20 border border-white/20 rounded px-1.5 py-0.5 text-[10px] font-mono font-semibold text-white">
+                  {parsePhonetic(getPronunciationGuide(currentPhrase.english).phoneticSpelling).map((part, pIdx) => {
+                    if (part.isSpace) return <span key={pIdx}> </span>;
+                    if (part.isHyphen) return <span key={pIdx} className="opacity-60 px-0.5">-</span>;
+                    return (
+                      <span 
+                        key={pIdx} 
+                        className={part.isStressed 
+                          ? "text-yellow-300 font-black bg-white/10 px-1 rounded border border-white/10" 
+                          : "text-white opacity-95"
+                        }
+                      >
+                        {part.text}
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
           </div>
-          <span className="bg-white text-orange-600 px-2 rounded-full font-black text-[10px] shrink-0 font-mono animate-bounce">
+          <span className="bg-white text-orange-600 px-2 rounded-full font-black text-[10px] shrink-0 font-mono animate-bounce self-center ml-2">
             {peekRemainingSeconds}s
           </span>
         </div>

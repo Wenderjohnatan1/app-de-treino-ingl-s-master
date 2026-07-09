@@ -6,7 +6,8 @@ import Dashboard from './components/Dashboard';
 import PhraseBook from './components/PhraseBook';
 import PracticeSession from './components/PracticeSession';
 import ProgressStats from './components/ProgressStats';
-import { BookOpen, Award, Flame, LogOut, CheckCircle2, LayoutDashboard, Settings2, BarChart3, Languages } from 'lucide-react';
+import SpacedRepetition from './components/SpacedRepetition';
+import { BookOpen, Award, Flame, LogOut, CheckCircle2, LayoutDashboard, Settings2, BarChart3, Languages, Brain } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 // Default progress constructor helper
@@ -158,6 +159,44 @@ export default function App() {
     setInstantPhrase(null); // clear temporary instant practice state
   };
 
+  // Automatically register a phrase into the Spaced Repetition (SRS) deck if not already present
+  const handleAutoAddToSrs = (phraseId: number) => {
+    if (!currentUser) return;
+    const stats = progress.phraseStats[phraseId];
+    if (stats && stats.srsNextReviewDate) {
+      return; // already registered in SRS, skip
+    }
+
+    const todayStr = new Date().toISOString().split('T')[0];
+    const updatedStats = { ...progress.phraseStats };
+    const existing = updatedStats[phraseId] || { correct: 0, incorrect: 0, status: 'unreached' };
+
+    updatedStats[phraseId] = {
+      ...existing,
+      srsInterval: 1,
+      srsEaseFactor: 2.5,
+      srsRepetitions: 1,
+      srsNextReviewDate: todayStr, // immediately due for review!
+    };
+
+    const nextProgress: UserProgressData = {
+      ...progress,
+      phraseStats: updatedStats
+    };
+
+    saveProgressData(nextProgress);
+  };
+
+  // Calculate pending spaced repetition cards count for dynamic header notification
+  const todayStr = new Date().toISOString().split('T')[0];
+  let dueSrsCount = 0;
+  PHRASES.forEach(phrase => {
+    const stats = progress.phraseStats[phrase.id];
+    if (stats && stats.srsNextReviewDate && stats.srsNextReviewDate <= todayStr) {
+      dueSrsCount++;
+    }
+  });
+
   // Direct practice on a specific selected error
   const handleRetrainError = (phraseId: number) => {
     const target = PHRASES.find(p => p.id === phraseId);
@@ -217,6 +256,29 @@ export default function App() {
         </div>
       </header>
 
+      {/* Spaced Repetition Due Cards Glowing Notification Alert Banner */}
+      {dueSrsCount > 0 && activeTab !== 'memorizacao' && currentUser && (
+        <div className="max-w-5xl mx-auto px-4 pt-4 shrink-0">
+          <div className="bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-2xl p-4 shadow-md flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div className="flex items-center gap-3 text-center sm:text-left">
+              <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center font-bold text-white shrink-0">
+                <Brain className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h4 className="font-extrabold text-sm leading-tight">Você tem {dueSrsCount} revisões pendentes de memorização hoje!</h4>
+                <p className="text-[11px] text-white/90 font-medium mt-0.5">Garanta sua retenção de longo prazo. Clique ao lado para exercitar suas frases pendentes.</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setActiveTab('memorizacao')}
+              className="py-2 px-4 bg-white text-rose-600 font-extrabold rounded-xl text-xs hover:scale-105 transition-all cursor-pointer shadow-xs shrink-0"
+            >
+              Estudar Cartões
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* 2. Main content container */}
       <main className="flex-1 max-w-5xl w-full mx-auto p-4 pb-24 md:pb-6 space-y-6">
         
@@ -271,6 +333,18 @@ export default function App() {
                   >
                     <Languages className="w-4 h-4" />
                     Treinar Fala & Escuta
+                  </button>
+
+                  <button
+                    onClick={() => { setActiveTab('memorizacao'); setInstantPhrase(null); }}
+                    className={`w-full py-2.5 px-3 rounded-xl font-bold flex items-center gap-2.5 transition-all text-left cursor-pointer ${
+                      activeTab === 'memorizacao' 
+                        ? 'bg-blue-600 text-white' 
+                        : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'
+                    }`}
+                  >
+                    <Brain className="w-4 h-4" />
+                    Memorização Espaçada (SRS)
                   </button>
 
                   <button
@@ -333,6 +407,7 @@ export default function App() {
                         initialInstantPhrase={instantPhrase}
                         onSessionComplete={handleSessionComplete}
                         onGoBack={() => { setActiveTab('dashboard'); setInstantPhrase(null); }}
+                        onAutoAddToSrs={handleAutoAddToSrs}
                       />
                     )}
 
@@ -340,11 +415,20 @@ export default function App() {
                       <PhraseBook 
                         progress={progress} 
                         onInstantPractice={handleInstantPractice}
+                        onAutoAddToSrs={handleAutoAddToSrs}
                       />
                     )}
 
                     {activeTab === 'progresso' && (
                       <ProgressStats progress={progress} />
+                    )}
+
+                    {activeTab === 'memorizacao' && (
+                      <SpacedRepetition 
+                        progress={progress}
+                        onUpdateProgress={saveProgressData}
+                        onNavigateToTab={setActiveTab}
+                      />
                     )}
                   </motion.div>
                 </AnimatePresence>
@@ -377,6 +461,16 @@ export default function App() {
           >
             <Languages className="w-5 h-5" />
             <span className="text-[10px] leading-none">Treinar</span>
+          </button>
+
+          <button
+            onClick={() => { setActiveTab('memorizacao'); setInstantPhrase(null); }}
+            className={`flex flex-col items-center gap-0.5 cursor-pointer transition-all ${
+              activeTab === 'memorizacao' ? 'text-blue-600 font-bold' : 'text-slate-400 hover:text-slate-600'
+            }`}
+          >
+            <Brain className="w-5 h-5" />
+            <span className="text-[10px] leading-none">Memorizar</span>
           </button>
 
           <button

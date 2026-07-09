@@ -1,14 +1,16 @@
 import { useState } from 'react';
 import { Phrase, UserProgressData } from '../types';
 import { PHRASES, CATEGORIES } from '../data/phrases';
-import { Search, Volume2, BookOpen, ChevronRight, CheckCircle, HelpCircle, GraduationCap } from 'lucide-react';
+import { Search, Volume2, BookOpen, ChevronRight, CheckCircle, HelpCircle, GraduationCap, Sparkles, Play } from 'lucide-react';
+import { getPronunciationGuide, playTextToSpeech, parsePhonetic } from '../utils/pronunciation';
 
 interface PhraseBookProps {
   progress: UserProgressData;
   onInstantPractice: (phrase: Phrase) => void;
+  onAutoAddToSrs?: (phraseId: number) => void;
 }
 
-export default function PhraseBook({ progress, onInstantPractice }: PhraseBookProps) {
+export default function PhraseBook({ progress, onInstantPractice, onAutoAddToSrs }: PhraseBookProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('Todos');
   const [expandedId, setExpandedId] = useState<number | null>(null);
@@ -24,17 +26,12 @@ export default function PhraseBook({ progress, onInstantPractice }: PhraseBookPr
   });
 
   // Pronounce phrase using SpeechSynthesis
-  const speakText = (text: string, e?: any) => {
+  const speakText = (text: string, e?: any, slow: boolean = false, phraseId?: number) => {
     if (e) e.stopPropagation();
-    if (!('speechSynthesis' in window)) {
-      alert('Sua máquina atual ou navegador não suporta Síntese de Voz Web.');
-      return;
+    playTextToSpeech(text, slow);
+    if (phraseId && onAutoAddToSrs) {
+      onAutoAddToSrs(phraseId);
     }
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'en-US';
-    utterance.rate = 0.85; // Slightly slower rate to facilitate clear hearing
-    window.speechSynthesis.speak(utterance);
   };
 
   const getStatusBadge = (id: number) => {
@@ -119,7 +116,12 @@ export default function PhraseBook({ progress, onInstantPractice }: PhraseBookPr
             return (
               <div
                 key={phrase.id}
-                onClick={() => setExpandedId(isExpanded ? null : phrase.id)}
+                onClick={() => {
+                  if (!isExpanded && onAutoAddToSrs) {
+                    onAutoAddToSrs(phrase.id);
+                  }
+                  setExpandedId(isExpanded ? null : phrase.id);
+                }}
                 className={`bg-white rounded-2xl border transition-all duration-300 overflow-hidden cursor-pointer ${
                   isExpanded ? 'border-blue-200 shadow-xs' : 'border-blue-50/60 hover:border-slate-200'
                 }`}
@@ -139,7 +141,7 @@ export default function PhraseBook({ progress, onInstantPractice }: PhraseBookPr
                   <div className="flex items-center gap-2">
                     {getStatusBadge(phrase.id)}
                     <button
-                      onClick={(e) => speakText(phrase.english, e)}
+                      onClick={(e) => speakText(phrase.english, e, false, phrase.id)}
                       className="p-2 hover:bg-blue-50 text-blue-600 rounded-xl cursor-pointer hover:scale-105 transition-all shrink-0 border border-transparent hover:border-blue-100"
                       title="Ouvir Pronúncia"
                     >
@@ -149,60 +151,128 @@ export default function PhraseBook({ progress, onInstantPractice }: PhraseBookPr
                 </div>
 
                 {/* Sub contents expanded pane */}
-                {isExpanded && (
-                  <div className="border-t border-blue-50 bg-slate-50/50 p-4 md:p-5 space-y-4 text-xs">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {/* Explanations section */}
-                      <div className="space-y-2">
-                        <div>
-                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">Significado / Uso</span>
-                          <p className="text-slate-700 font-medium leading-relaxed mt-0.5">{phrase.meaning}</p>
+                {isExpanded && (() => {
+                  const guide = getPronunciationGuide(phrase.english);
+                  return (
+                    <div className="border-t border-blue-50 bg-slate-50/50 p-4 md:p-5 space-y-4 text-xs">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        
+                        {/* Explanations section */}
+                        <div className="space-y-3">
+                          <div>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">Significado / Uso</span>
+                            <p className="text-slate-700 font-medium leading-relaxed mt-0.5">{phrase.meaning}</p>
+                          </div>
+                          <div>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">Contexto Recomendado</span>
+                            <p className="text-slate-500 mt-0.5">{phrase.context}</p>
+                          </div>
+
+                          {/* Speech Speed controls inside expanded box */}
+                          <div className="pt-2 flex flex-wrap items-center gap-2">
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono mr-1">Ouvir Expressão:</span>
+                            <button
+                              onClick={(e) => speakText(phrase.english, e, false, phrase.id)}
+                              className="px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 border border-blue-100 text-blue-600 font-bold rounded-lg flex items-center gap-1 transition-all cursor-pointer text-[10px]"
+                            >
+                              <Volume2 className="w-3.5 h-3.5" /> Ouvir Normal
+                            </button>
+                            <button
+                              onClick={(e) => speakText(phrase.english, e, true, phrase.id)}
+                              className="px-2.5 py-1.5 bg-pink-50 hover:bg-pink-100 border border-pink-100 text-pink-600 font-bold rounded-lg flex items-center gap-1 transition-all cursor-pointer text-[10px]"
+                            >
+                              <Play className="w-3 h-3 fill-current" /> Ouvir Devagar
+                            </button>
+                          </div>
                         </div>
-                        <div>
-                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">Contexto Recomendo</span>
-                          <p className="text-slate-500 mt-0.5">{phrase.context}</p>
+
+                        {/* Code Examples section */}
+                        <div className="p-3 bg-white rounded-xl border border-slate-100 flex flex-col justify-between space-y-2">
+                          <div>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono flex items-center gap-1">
+                              Exemplo no Cotidiano
+                            </span>
+                            <div className="space-y-1 mt-1">
+                              <p className="font-bold text-slate-800 italic flex items-center gap-1.5 leading-relaxed">
+                                <span className="w-1.5 h-1.5 bg-blue-500 rounded-full shrink-0" />
+                                {phrase.example}
+                              </p>
+                              <p className="text-slate-500 pl-3 italic">{phrase.exampleTranslation}</p>
+                            </div>
+                          </div>
+                          {/* Audio speaker micro buttons for example */}
+                          <div className="pt-2 flex justify-end gap-1.5">
+                            <button
+                              onClick={(e) => speakText(phrase.example, e, false, phrase.id)}
+                              className="bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-500 hover:text-slate-800 font-semibold px-2 py-1 rounded text-[10px] flex items-center gap-1 transition-all cursor-pointer"
+                            >
+                              <Volume2 className="w-3 h-3" /> Exemplo
+                            </button>
+                            <button
+                              onClick={(e) => speakText(phrase.example, e, true, phrase.id)}
+                              className="bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-500 hover:text-slate-800 font-semibold px-2 py-1 rounded text-[10px] flex items-center gap-1 transition-all cursor-pointer"
+                            >
+                              <Play className="w-2.5 h-2.5 fill-current" /> Devagar
+                            </button>
+                          </div>
                         </div>
+
+                        {/* TUTORIAL DE PRONÚNCIA EM PORTUGUÊS */}
+                        <div className="md:col-span-2 bg-amber-50/40 border border-amber-200/50 rounded-xl p-3.5 space-y-2.5">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-amber-100 pb-2">
+                            <span className="font-extrabold text-amber-800 flex items-center gap-1.5 text-xs">
+                              <Sparkles className="w-3.5 h-3.5 text-amber-500 fill-amber-500 shrink-0" />
+                              Guia Definitivo de Pronúncia (Como Falar)
+                            </span>
+                            <div className="font-mono text-[10.5px] font-extrabold text-amber-700 bg-amber-50 px-2.5 py-1 rounded border border-amber-100 shrink-0 flex flex-wrap items-center gap-0.5 leading-none">
+                              <span>Sons aproximados:</span>
+                              <div className="inline-flex items-center gap-0.5 ml-1 bg-white px-1.5 py-0.5 rounded border border-amber-200/50 shadow-2xs">
+                                {parsePhonetic(guide.phoneticSpelling).map((part, pIdx) => {
+                                  if (part.isSpace) return <span key={pIdx}> </span>;
+                                  if (part.isHyphen) return <span key={pIdx} className="text-amber-400 px-0.5">-</span>;
+                                  return (
+                                    <span 
+                                      key={pIdx} 
+                                      className={part.isStressed 
+                                        ? "text-pink-600 font-extrabold bg-pink-100/80 px-1 rounded border border-pink-200/60" 
+                                        : "text-slate-700 font-semibold"
+                                      }
+                                    >
+                                      {part.text}
+                                    </span>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="space-y-1.5">
+                            {guide.tips.map((tip, index) => (
+                              <p key={index} className="text-[11px] text-slate-600 leading-relaxed pl-2 border-l-2 border-amber-350">
+                                {tip}
+                              </p>
+                            ))}
+                          </div>
+                        </div>
+
                       </div>
 
-                      {/* Code Examples section */}
-                      <div className="p-3 bg-white rounded-xl border border-slate-100 space-y-2">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono flex items-center gap-1">
-                          Exemplo no Cotidiano
-                        </span>
-                        <div className="space-y-1">
-                          <p className="font-bold text-slate-800 italic flex items-center gap-1.5 leading-relaxed">
-                            <span className="w-1.5 h-1.5 bg-blue-500 rounded-full shrink-0" />
-                            {phrase.example}
-                          </p>
-                          <p className="text-slate-500 pl-3 italic">{phrase.exampleTranslation}</p>
-                        </div>
-                        {/* Audio speaker micro button */}
-                        <div className="pt-2 flex justify-end">
-                          <button
-                            onClick={(e) => speakText(phrase.example, e)}
-                            className="bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-500 hover:text-slate-800 font-semibold px-2 py-1 rounded text-[10px] flex items-center gap-1 transition-all cursor-pointer"
-                          >
-                            <Volume2 className="w-3 h-3" /> Ouvir Exemplo
-                          </button>
-                        </div>
+                      {/* Instant practice CTA */}
+                      <div className="pt-2 flex justify-end">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onInstantPractice(phrase);
+                          }}
+                          className="py-1.5 px-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg cursor-pointer transition-all flex items-center gap-1"
+                        >
+                          Praticar esta Frase
+                          <ChevronRight className="w-3.5 h-3.5" />
+                        </button>
                       </div>
                     </div>
-
-                    {/* Instant practice CTA */}
-                    <div className="pt-2 flex justify-end">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onInstantPractice(phrase);
-                        }}
-                        className="py-1.5 px-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg cursor-pointer transition-all flex items-center gap-1"
-                      >
-                        Praticar esta Frase
-                        <ChevronRight className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                )}
+                  );
+                })()}
               </div>
             );
           })

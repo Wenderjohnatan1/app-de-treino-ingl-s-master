@@ -25,6 +25,11 @@ export interface PhraseProgress {
   incorrect: number;
   status: 'unreached' | 'reviewing' | 'learned';
   lastPracticedAt?: string;
+  // SRS (Spaced Repetition System) properties
+  srsInterval?: number;       // current interval in days
+  srsEaseFactor?: number;     // ease factor (default 2.5)
+  srsRepetitions?: number;    // number of consecutive correct reviews
+  srsNextReviewDate?: string; // YYYY-MM-DD when this card is due
 }
 
 export interface UserProgressData {
@@ -45,4 +50,4 @@ export interface DailyHistory {
 }
 
 export type TrainingMode = 'falar' | 'ouvir' | 'escrever';
-export type AppTab = 'dashboard' | 'treinar' | 'frases' | 'progresso';
+export type AppTab = 'dashboard' | 'treinar' | 'frases' | 'progresso' | 'memorizacao';
