@@ -215,9 +215,9 @@ export function getPronunciationGuide(englishText: string): PronunciationTutoria
     const sampleWord = thWords[0] || "this/thank";
     
     if (lowerText.includes("thank") || lowerText.includes("thirsty") || lowerText.includes("birthday") || lowerText.includes("bathroom")) {
-      tips.push(`👅 **Som do TH Soprado (Surdo)** em *"${sampleWord}"*: Coloque a ponta da língua levemente entre os dentes da frente e apenas assopre o ar, sem vibrar as cordas vocais. Soa como um 'F' ou 'S' soprado.`);
+      tips.push(`👅 **Língua presa (Soprinho)** em *"${sampleWord}"*: Coloque a pontinha da língua no meio dos dentes da frente e solte um arzinho leve (igual a uma cobrinha 🐍). Parece um som de "S" com a língua presa!`);
     } else {
-      tips.push(`🗣️ **Som do TH Vibrado (Sonoro)** em *"${sampleWord}"*: Coloque a ponta da língua entre os dentes e faça o som vibrar (como um 'D' ou 'Z' vibrado).`);
+      tips.push(`🐝 **Língua presa (Abelhinha)** em *"${sampleWord}"*: Coloque a pontinha da língua no meio dos dentes e faça tremer como o zumbido de uma abelhinha! Lembra um som de "Z" ou "D" com a língua presa.`);
     }
   }
 
@@ -225,7 +225,7 @@ export function getPronunciationGuide(englishText: string): PronunciationTutoria
   if (lowerText.includes("r")) {
     const rWords = englishText.split(/\s+/).filter(w => w.toLowerCase().includes("r")).map(w => w.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?]/g, ""));
     if (rWords.length > 0) {
-      tips.push(`🤠 **O "R" Retroflexo Americano**: Em palavras como *"${rWords[0]}"*, enrole a língua para trás no céu da boca sem tocar os dentes. É igual ao sotaque caipira de "por-ta" ou "car-to".`);
+      tips.push(`🤠 **Sotaque de Caipira (Porta)** em *"${rWords[0]}"*: Enrole a língua para trás, apontando para o céu da boca! Fale igualzinho ao "R" do interior quando falamos "porrrta" ou "carrrto". Fica super divertido!`);
     }
   }
 
@@ -235,7 +235,7 @@ export function getPronunciationGuide(englishText: string): PronunciationTutoria
     // Filter out common short words where E is not silent (like me, we, she, he, the)
     const silentEWords = wordsWithSilentE.filter(w => !["me", "we", "she", "he", "the", "be"].includes(w.toLowerCase()));
     if (silentEWords.length > 0) {
-      tips.push(`🤫 **"E" Mudo no final**: Na palavra *"${silentEWords[0]}"*, a letra 'E' final é totalmente silenciosa. A pronúncia termina no som da consoante anterior.`);
+      tips.push(`🤫 **"E" Invisível (Não fale!)** em *"${silentEWords[0]}"*: A letra **"E"** no finzinho da palavra sumiu, ela não existe na fala! Pare o som na letra anterior e não diga "é" ou "i" no final.`);
     }
   }
 
@@ -243,7 +243,7 @@ export function getPronunciationGuide(englishText: string): PronunciationTutoria
   if (lowerText.includes("ing")) {
     const ingWords = englishText.split(/\s+/).filter(w => w.toLowerCase().includes("ing")).map(w => w.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?]/g, ""));
     if (ingWords.length > 0) {
-      tips.push(`🔇 **O "G" Silencioso no -ING**: No final de *"${ingWords[0]}"*, o som do 'G' não é pronunciado. O som morre sutilmente em um som nasal no 'N' (como em *mór-nin*).`);
+      tips.push(`🔇 **Apague o "G"** em *"${ingWords[0]}"*: No final do "-ing", finja que o **"G"** não existe! O som deve acabar de forma bem suave no **"N"**, sem fazer som de "GUE" ou "GA" no final.`);
     }
   }
 
@@ -251,7 +251,7 @@ export function getPronunciationGuide(englishText: string): PronunciationTutoria
   if (lowerText.includes("oo")) {
     const ooWords = englishText.split(/\s+/).filter(w => w.toLowerCase().includes("oo")).map(w => w.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?]/g, ""));
     if (ooWords.length > 0) {
-      tips.push(`👄 **Duplo "O" (som de U)**: Em *"${ooWords[0]}"*, as letras 'OO' se unem com som de 'U' em português (como em *gúd* ou *nún*).`);
+      tips.push(`👄 **Duas letras "O" viram "U"** em *"${ooWords[0]}"*: Sempre que ver duas letras **"O"** coladinhas, fale com som de **"U"** do nosso português!`);
     }
   }
 
@@ -259,7 +259,7 @@ export function getPronunciationGuide(englishText: string): PronunciationTutoria
   if (/\bh[aeiou]\w*/i.test(lowerText)) {
     const hWords = englishText.split(/\s+/).filter(w => /^h[aeiou]/i.test(w)).map(w => w.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?]/g, ""));
     if (hWords.length > 0) {
-      tips.push(`🦁 **O "H" com som de "R" forte**: No início de *"${hWords[0]}"*, a letra 'H' é pronunciada expelindo o ar com força, como o 'R' em "rato" ou "rio".`);
+      tips.push(`🦁 **Som de Leão (Rrrr)** em *"${hWords[0]}"*: A letra **"H"** no começo tem som de **"R"** bem forte e limpo, igual ao "R" em "rato", "rio" ou "rua". Dê um suspiro forte para falar!`);
     }
   }
 
@@ -267,17 +267,17 @@ export function getPronunciationGuide(englishText: string): PronunciationTutoria
   if (/[aeiou]t[aeiou]/i.test(lowerText) || /tt/i.test(lowerText) || /ty/i.test(lowerText)) {
     const tWords = englishText.split(/\s+/).filter(w => /[aeiou]t[aeiou]/i.test(w) || /tt/i.test(w) || /ty/i.test(w)).map(w => w.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?]/g, ""));
     if (tWords.length > 0) {
-      tips.push(`🕊️ **O "T" que vira "R" suave**: Em *"${tWords[0]}"*, o 'T' (ou 'TT') fica entre vogais e soa como o 'R' fraco de "caro" ou "nora" no português (como no sotaque americano).`);
+      tips.push(`🕊️ **Som de Arara (R suave)** em *"${tWords[0]}"*: O **"T"** no meio de vogais fica fraquinho e soa como o **"R"** suave que usamos em "caro", "nora" ou "arara". Fale rápido!`);
     }
   }
 
   // Fallback / standard tip if we don't have enough specific ones
   if (tips.length < 2) {
-    tips.push(`🎯 **Sons Colados (Connected Speech)**: Em inglês, junte o som final de uma palavra com o início da próxima para soar natural! Por exemplo, "what is" vira "uó-tiz".`);
+    tips.push(`🔗 **Sons Grudados (Trenzinho)**: Fale as palavras emendando o final de uma no começo da outra! Por exemplo, "what is" vira uma palavra só na boca: *uó-tiz*.`);
   }
 
   // Add the general layout usage tip so any user knows how to read
-  tips.unshift(`💡 **Como ler**: Fale os pedaços aproximados como se estivesse lendo em português. As partes destacadas em **rosa/negrito** indicam onde colocar a maior força da voz (sílaba tônica).`);
+  tips.unshift(`💡 **Como ler**: Fale os pedacinhos do guia de pronúncia como se estivesse lendo em português! O pedaço de cor **rosa** é onde você coloca mais força na voz (a sílaba mais forte).`);
 
   return {
     phoneticSpelling,

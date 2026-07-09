@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Phrase, UserProgressData, PhraseProgress } from '../types';
 import { PHRASES, CATEGORIES } from '../data/phrases';
 import { getPronunciationGuide, playTextToSpeech, parsePhonetic } from '../utils/pronunciation';
+import { FormatPronunciationTip } from './FormatPronunciationTip';
 import { 
   Brain, 
   Sparkles, 
@@ -39,8 +40,14 @@ export default function SpacedRepetition({ progress, onUpdateProgress, onNavigat
   const [duePhrases, setDuePhrases] = useState<Phrase[]>([]);
   const [currentCardIndex, setCurrentCardIndex] = useState<number>(0);
   const [isFlipped, setIsFlipped] = useState<boolean>(false);
+  const [srsPronunciationExpanded, setSrsPronunciationExpanded] = useState<boolean>(false);
   const [isSlowSpeech, setIsSlowSpeech] = useState<boolean>(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('Todos');
+
+  // Collapse pronunciation guide on card changes
+  useEffect(() => {
+    setSrsPronunciationExpanded(false);
+  }, [currentCardIndex, isFlipped]);
   
   // Stats
   const [srsStats, setSrsStats] = useState({
@@ -513,8 +520,9 @@ export default function SpacedRepetition({ progress, onUpdateProgress, onNavigat
                           onClick={(e) => {
                             e.stopPropagation();
                             playTextToSpeech(activeCard.english, false);
+                            setSrsPronunciationExpanded(true);
                           }}
-                          className="p-3 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-full transition-all flex items-center justify-center shadow-xs"
+                          className="p-3 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-full transition-all flex items-center justify-center shadow-xs animate-pulse-subtle"
                           title="Ouvir Normal"
                         >
                           <Volume2 className="w-5 h-5" />
@@ -523,6 +531,7 @@ export default function SpacedRepetition({ progress, onUpdateProgress, onNavigat
                           onClick={(e) => {
                             e.stopPropagation();
                             playTextToSpeech(activeCard.english, true);
+                            setSrsPronunciationExpanded(true);
                           }}
                           className="py-1.5 px-3 bg-pink-50 text-pink-600 hover:bg-pink-100 rounded-xl font-bold text-xs flex items-center gap-1 transition-all"
                           title="Ouvir Devagar"
@@ -576,24 +585,35 @@ export default function SpacedRepetition({ progress, onUpdateProgress, onNavigat
                       </div>
 
                       {/* TUTORIAL DE PRONÚNCIA */}
-                      <div className="bg-amber-50/40 border border-amber-200/50 rounded-xl p-3 space-y-2 text-xs">
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-amber-100 pb-1.5">
-                          <span className="font-extrabold text-amber-800 flex items-center gap-1 text-xs">
+                      <div 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSrsPronunciationExpanded(!srsPronunciationExpanded);
+                        }}
+                        className={`bg-amber-50/55 hover:bg-amber-50/85 border border-amber-200/50 rounded-2xl p-4 transition-all duration-300 cursor-pointer ${
+                          srsPronunciationExpanded ? 'shadow-xs border-amber-300/80' : 'hover:border-amber-300/50'
+                        }`}
+                      >
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-amber-100/70 pb-2">
+                          <span className="font-extrabold text-amber-900 flex items-center gap-1.5 text-xs">
                             <Sparkle className="w-3.5 h-3.5 fill-amber-500 text-amber-500 shrink-0" />
                             Guia de Pronúncia Prática
+                            <span className="text-[10px] bg-amber-100 text-amber-850 px-2 py-0.5 rounded-full font-bold ml-1.5">
+                              {srsPronunciationExpanded ? 'Clique para fechar ▲' : 'Clique para ver dicas fáceis ▼'}
+                            </span>
                           </span>
-                          <span className="font-mono text-[10px] font-extrabold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-100 shrink-0 flex flex-wrap items-center gap-0.5 leading-none">
+                          <span className="font-mono text-[10px] font-extrabold text-amber-800 bg-amber-100/50 px-2.5 py-1 rounded-xl border border-amber-200/50 shrink-0 flex flex-wrap items-center gap-0.5 leading-none shadow-3xs">
                             <span>Sons aproximados:</span>
-                            <div className="inline-flex items-center gap-0.5 ml-1 bg-white px-1.5 py-0.5 rounded border border-amber-200/50 shadow-2xs">
+                            <div className="inline-flex items-center gap-0.5 ml-1 bg-white px-2 py-0.5 rounded-lg border border-amber-200/60 shadow-2xs">
                               {activePronunciation && parsePhonetic(activePronunciation.phoneticSpelling).map((part, pIdx) => {
                                 if (part.isSpace) return <span key={pIdx}> </span>;
-                                if (part.isHyphen) return <span key={pIdx} className="text-amber-400 px-0.5">-</span>;
+                                if (part.isHyphen) return <span key={pIdx} className="text-amber-450 px-0.5">-</span>;
                                 return (
                                   <span 
                                     key={pIdx} 
                                     className={part.isStressed 
-                                      ? "text-pink-600 font-extrabold bg-pink-100/80 px-1 rounded border border-pink-200/60" 
-                                      : "text-slate-700 font-semibold"
+                                      ? "text-pink-600 font-extrabold bg-pink-100/85 px-1.5 py-0.5 rounded border border-pink-200/60 shadow-3xs" 
+                                      : "text-slate-800 font-bold"
                                     }
                                   >
                                     {part.text}
@@ -604,13 +624,15 @@ export default function SpacedRepetition({ progress, onUpdateProgress, onNavigat
                           </span>
                         </div>
 
-                        <div className="space-y-1.5">
-                          {activePronunciation?.tips.map((tip, i) => (
-                            <p key={i} className="text-[11px] text-slate-600 leading-relaxed pl-1.5 border-l border-amber-200/60">
-                              {tip}
-                            </p>
-                          ))}
-                        </div>
+                        {srsPronunciationExpanded && (
+                          <div className="mt-3 pt-3 space-y-2.5 animate-slide-down">
+                            {activePronunciation?.tips.map((tip, i) => (
+                              <div key={i} className="pl-2.5 border-l-2 border-amber-400 hover:border-pink-400 transition-colors">
+                                <FormatPronunciationTip tip={tip} />
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
 
                     </div>

@@ -3,6 +3,7 @@ import { Phrase, UserProgressData } from '../types';
 import { PHRASES, CATEGORIES } from '../data/phrases';
 import { Search, Volume2, BookOpen, ChevronRight, CheckCircle, HelpCircle, GraduationCap, Sparkles, Play } from 'lucide-react';
 import { getPronunciationGuide, playTextToSpeech, parsePhonetic } from '../utils/pronunciation';
+import { FormatPronunciationTip } from './FormatPronunciationTip';
 
 interface PhraseBookProps {
   progress: UserProgressData;
@@ -14,6 +15,7 @@ export default function PhraseBook({ progress, onInstantPractice, onAutoAddToSrs
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('Todos');
   const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [pronunciationExpanded, setPronunciationExpanded] = useState<Record<number, boolean>>({});
 
   // Filter phrases based on search and selected category
   const filteredPhrases = PHRASES.filter(phrase => {
@@ -26,11 +28,15 @@ export default function PhraseBook({ progress, onInstantPractice, onAutoAddToSrs
   });
 
   // Pronounce phrase using SpeechSynthesis
-  const speakText = (text: string, e?: any, slow: boolean = false, phraseId?: number) => {
+  const speakText = (text: string, e?: any, slow: boolean = false, phraseId?: number, autoExpand: boolean = false) => {
     if (e) e.stopPropagation();
     playTextToSpeech(text, slow);
     if (phraseId && onAutoAddToSrs) {
       onAutoAddToSrs(phraseId);
+    }
+    if (autoExpand && phraseId) {
+      setExpandedId(phraseId);
+      setPronunciationExpanded(prev => ({ ...prev, [phraseId]: true }));
     }
   };
 
@@ -141,7 +147,7 @@ export default function PhraseBook({ progress, onInstantPractice, onAutoAddToSrs
                   <div className="flex items-center gap-2">
                     {getStatusBadge(phrase.id)}
                     <button
-                      onClick={(e) => speakText(phrase.english, e, false, phrase.id)}
+                      onClick={(e) => speakText(phrase.english, e, false, phrase.id, true)}
                       className="p-2 hover:bg-blue-50 text-blue-600 rounded-xl cursor-pointer hover:scale-105 transition-all shrink-0 border border-transparent hover:border-blue-100"
                       title="Ouvir Pronúncia"
                     >
@@ -218,24 +224,36 @@ export default function PhraseBook({ progress, onInstantPractice, onAutoAddToSrs
                         </div>
 
                         {/* TUTORIAL DE PRONÚNCIA EM PORTUGUÊS */}
-                        <div className="md:col-span-2 bg-amber-50/40 border border-amber-200/50 rounded-xl p-3.5 space-y-2.5">
-                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-amber-100 pb-2">
-                            <span className="font-extrabold text-amber-800 flex items-center gap-1.5 text-xs">
-                              <Sparkles className="w-3.5 h-3.5 text-amber-500 fill-amber-500 shrink-0" />
-                              Guia Definitivo de Pronúncia (Como Falar)
-                            </span>
-                            <div className="font-mono text-[10.5px] font-extrabold text-amber-700 bg-amber-50 px-2.5 py-1 rounded border border-amber-100 shrink-0 flex flex-wrap items-center gap-0.5 leading-none">
+                        <div 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setPronunciationExpanded(prev => ({ ...prev, [phrase.id]: !prev[phrase.id] }));
+                          }}
+                          className={`md:col-span-2 bg-amber-50/55 hover:bg-amber-50/80 border border-amber-200/50 rounded-2xl p-4 transition-all duration-300 cursor-pointer ${
+                            pronunciationExpanded[phrase.id] ? 'shadow-xs border-amber-300/80' : 'hover:border-amber-300/50'
+                          }`}
+                        >
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-amber-100/70">
+                            <div className="flex items-center gap-2 text-amber-900 font-black">
+                              <Sparkles className="w-4 h-4 text-amber-500 fill-amber-400 animate-pulse shrink-0" />
+                              <span className="text-xs sm:text-sm">Guia Prático de Pronúncia (Como falar)</span>
+                              <span className="text-[10px] bg-amber-100/80 text-amber-850 px-2.5 py-0.5 rounded-full font-bold ml-1">
+                                {pronunciationExpanded[phrase.id] ? 'Clique para fechar ▲' : 'Clique para ver dicas fáceis ▼'}
+                              </span>
+                            </div>
+                            
+                            <div className="font-mono text-[10.5px] font-extrabold text-amber-800 bg-amber-100/50 px-2.5 py-1 rounded-xl border border-amber-200/50 shrink-0 flex flex-wrap items-center gap-1 leading-none shadow-3xs">
                               <span>Sons aproximados:</span>
-                              <div className="inline-flex items-center gap-0.5 ml-1 bg-white px-1.5 py-0.5 rounded border border-amber-200/50 shadow-2xs">
+                              <div className="inline-flex items-center gap-0.5 ml-1 bg-white px-2 py-0.5 rounded-lg border border-amber-200/60 shadow-2xs">
                                 {parsePhonetic(guide.phoneticSpelling).map((part, pIdx) => {
                                   if (part.isSpace) return <span key={pIdx}> </span>;
-                                  if (part.isHyphen) return <span key={pIdx} className="text-amber-400 px-0.5">-</span>;
+                                  if (part.isHyphen) return <span key={pIdx} className="text-amber-455 px-0.5">-</span>;
                                   return (
                                     <span 
                                       key={pIdx} 
                                       className={part.isStressed 
-                                        ? "text-pink-600 font-extrabold bg-pink-100/80 px-1 rounded border border-pink-200/60" 
-                                        : "text-slate-700 font-semibold"
+                                        ? "text-pink-600 font-extrabold bg-pink-100/85 px-1.5 py-0.5 rounded border border-pink-200/60 shadow-3xs" 
+                                        : "text-slate-800 font-bold"
                                       }
                                     >
                                       {part.text}
@@ -246,13 +264,15 @@ export default function PhraseBook({ progress, onInstantPractice, onAutoAddToSrs
                             </div>
                           </div>
 
-                          <div className="space-y-1.5">
-                            {guide.tips.map((tip, index) => (
-                              <p key={index} className="text-[11px] text-slate-600 leading-relaxed pl-2 border-l-2 border-amber-350">
-                                {tip}
-                              </p>
-                            ))}
-                          </div>
+                          {pronunciationExpanded[phrase.id] && (
+                            <div className="mt-3 pt-3 space-y-2.5 animate-slide-down">
+                              {guide.tips.map((tip, index) => (
+                                <div key={index} className="pl-2.5 border-l-2 border-amber-400 hover:border-pink-400 transition-colors">
+                                  <FormatPronunciationTip tip={tip} />
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
 
                       </div>
