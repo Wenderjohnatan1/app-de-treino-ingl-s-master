@@ -7,15 +7,20 @@ import PhraseBook from './components/PhraseBook';
 import PracticeSession from './components/PracticeSession';
 import ProgressStats from './components/ProgressStats';
 import SpacedRepetition from './components/SpacedRepetition';
-import { BookOpen, Award, Flame, LogOut, CheckCircle2, LayoutDashboard, Settings2, BarChart3, Languages, Brain } from 'lucide-react';
+import { BookOpen, Award, Flame, LogOut, CheckCircle2, LayoutDashboard, Settings2, BarChart3, Languages, Brain, Cloud } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { 
+  subscribeToAuthChanges, 
+  saveUserProgressToFirestore, 
+  loadUserProgressFromFirestore 
+} from './firebase';
 
 // Default progress constructor helper
 const createInitialProgress = (userId: string): UserProgressData => ({
   userId,
   correctCount: 0,
   incorrectCount: 0,
-  streak: 0,
+  streak: 1,
   phraseStats: {},
   incorrectPhraseIds: [],
   history: []
@@ -27,8 +32,9 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<AppTab>('dashboard');
   const [instantPhrase, setInstantPhrase] = useState<Phrase | null>(null);
 
-  // 1. Core hook: Handle User authentication loads
+  // 1. Core hook: Handle User authentication and Firebase Auth listener
   useEffect(() => {
+    // Check local session first
     try {
       const activeUser = localStorage.getItem('ingles_master_active_user');
       if (activeUser) {
@@ -39,17 +45,41 @@ export default function App() {
     } catch (e) {
       console.error("Error recovering session:", e);
     }
+
+    // Subscribe to Firebase auth state changes
+    const unsubscribe = subscribeToAuthChanges(async (fbUser) => {
+      if (fbUser) {
+        setCurrentUser(fbUser);
+        localStorage.setItem('ingles_master_active_user', JSON.stringify(fbUser));
+        await loadUserProgress(fbUser.id);
+      }
+    });
+
+    return () => unsubscribe();
   }, []);
 
-  const loadUserProgress = (userId: string) => {
+  const loadUserProgress = async (userId: string) => {
+    // 1. Try to load from Firestore cloud
+    if (userId && userId !== 'convidado') {
+      try {
+        const cloudProgress = await loadUserProgressFromFirestore(userId);
+        if (cloudProgress) {
+          setProgress(cloudProgress);
+          localStorage.setItem(`ingles_master_progress_${userId}`, JSON.stringify(cloudProgress));
+          return;
+        }
+      } catch (err) {
+        console.warn("Could not fetch cloud progress:", err);
+      }
+    }
+
+    // 2. Fallback to LocalStorage
     try {
       const stored = localStorage.getItem(`ingles_master_progress_${userId}`);
       if (stored) {
         setProgress(JSON.parse(stored));
       } else {
         const fresh = createInitialProgress(userId);
-        // Default streak 1 if brand new account to make user motivated
-        fresh.streak = 1;
         setProgress(fresh);
         localStorage.setItem(`ingles_master_progress_${userId}`, JSON.stringify(fresh));
       }
@@ -72,11 +102,15 @@ export default function App() {
     setActiveTab('dashboard');
   };
 
-  // 2. Core hook: Save active progress state on change
+  // 2. Core hook: Save active progress state on change to LocalStorage & Firestore
   const saveProgressData = (updated: UserProgressData) => {
     setProgress(updated);
     if (currentUser) {
       localStorage.setItem(`ingles_master_progress_${currentUser.id}`, JSON.stringify(updated));
+      // Asynchronously sync to Firestore Database
+      if (currentUser.id !== 'convidado') {
+        saveUserProgressToFirestore(currentUser.id, updated);
+      }
     }
   };
 
